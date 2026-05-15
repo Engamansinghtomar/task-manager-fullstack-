@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  MANAGER
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  ON_HOLD
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+
+  createdProjects Project[] @relation("ProjectCreator")
+  assignedTasks   Task[]
+  projectMembers  ProjectMember[]
+}
+
+model Project {
+  id          Int           @id @default(autoincrement())
+  name        String
+  description String
+  status      ProjectStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now())
+
+  createdById Int
+
+  createdBy User @relation("ProjectCreator", fields: [createdById], references: [id])
+
+  tasks   Task[]
+  members ProjectMember[]
+}
+
+model ProjectMember {
+  id        Int @id @default(autoincrement())
+
+  projectId Int
+  userId    Int
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+}
+
+model Task {
+  id          Int          @id @default(autoincrement())
+  title       String
+  description String
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  dueDate     DateTime
+
+  attachment  String?
+
+  createdAt   DateTime @default(now())
+
+  projectId    Int
+  assignedToId Int
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  assignedTo User @relation(fields: [assignedToId], references: [id], onDelete: Cascade)
+}
